@@ -1,0 +1,97 @@
+# Bristol Vox LV2 — Windows (MSYS2 MinGW) and Linux→Windows cross-compile
+#
+# Native build (run inside "MSYS2 UCRT64" or "MINGW64" terminal):
+#   pacman -S --needed mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-make \
+#       mingw-w64-ucrt-x86_64-pkg-config mingw-w64-ucrt-x86_64-lv2 \
+#       mingw-w64-ucrt-x86_64-winpthreads
+#   make -f Makefile.win
+#   make -f Makefile.win install
+#
+# Cross-compile on Linux (Debian/Ubuntu):
+#   sudo apt install mingw-w64 pkg-config
+#   # LV2 headers for mingw (copy from MSYS2 or use LV2_INCLUDE)
+#   make -f Makefile.win CROSS=x86_64-w64-mingw32
+
+include sources.mk
+
+# --- toolchain -----------------------------------------------------------
+ifdef CROSS
+  CC      ?= $(CROSS)-gcc
+  WINDRES ?=
+  EXE     := .dll
+  PLUGIN  := bristol-vox.lv2/bristol-vox.dll
+  # Point at a MinGW LV2 include tree, e.g. /usr/x86_64-w64-mingw32/include
+  LV2_CFLAGS ?= -I/usr/x86_64-w64-mingw32/include
+else
+  CC      ?= gcc
+  EXE     := .dll
+  PLUGIN  := bristol-vox.lv2/bristol-vox.dll
+  LV2_CFLAGS ?= $(shell pkg-config --cflags lv2 2>/dev/null)
+endif
+
+# Fully static pthread — Carla loads deps from its own dir, not the .lv2 bundle
+LIBS := -lm -static -lpthread
+
+# SSE is fine on x86 Windows
+BRISTOL_CFLAGS := -std=gnu89 -O2 -ffast-math $(WARN) $(INC) $(DEFS) $(LV2_CFLAGS) $(FORCE_INCLUDES) \
+	-DLV2_SYMBOL_EXPORT="__declspec(dllexport)"
+PLUGIN_CFLAGS := -std=gnu99 -O2 -ffast-math -Wall $(INC) $(DEFS) $(LV2_CFLAGS) $(FORCE_INCLUDES) \
+	-DLV2_SYMBOL_EXPORT="__declspec(dllexport)"
+
+CFLAGS := $(BRISTOL_CFLAGS)
+LDFLAGS += -shared $(LIBS) -Wl,--out-implib,$(BUILD)/libbristol-vox.a
+
+ifeq ($(OS),Windows_NT)
+  INSTALL_DIR := $(USERPROFILE)/.lv2
+else
+  INSTALL_DIR ?= $(HOME)/.lv2
+endif
+
+TEST_BIN := $(BUILD)/run_tests.exe
+
+.PHONY: all clean install test
+
+all: $(PLUGIN)
+
+$(BUILD):
+	mkdir -p $(BUILD)
+
+$(BUILD)/%.o: $(ROOT)/bristol/%.c | $(BUILD)
+	$(CC) $(CFLAGS) -c -o $@ $<
+
+$(BUILD)/%.o: $(ROOT)/libbristol/%.c | $(BUILD)
+	$(CC) $(CFLAGS) -c -o $@ $<
+
+$(BUILD)/bristol_vox_plugin.o: bristol_vox_plugin.c | $(BUILD)
+	$(CC) $(PLUGIN_CFLAGS) -c -o $@ $<
+
+$(BUILD)/run_tests.o: tests/run_tests.c | $(BUILD)
+	$(CC) $(PLUGIN_CFLAGS) -Itests -c -o $@ $<
+
+$(BUILD)/test_engine.o: tests/test_engine.c | $(BUILD)
+	$(CC) $(PLUGIN_CFLAGS) -Itests -c -o $@ $<
+
+$(BUILD)/test_plugin.o: tests/test_plugin.c | $(BUILD)
+	$(CC) $(PLUGIN_CFLAGS) -Itests -c -o $@ $<
+
+$(TEST_BIN): $(OBJ) $(TEST_OBJ)
+	$(CC) -o $@ $(OBJ) $(TEST_OBJ) $(LIBS)
+
+test: $(TEST_BIN)
+	./$(TEST_BIN)
+
+$(BUILD)/%.o: %.c | $(BUILD)
+	$(CC) $(CFLAGS) -c -o $@ $<
+
+$(PLUGIN): $(OBJ)
+	$(CC) $(LDFLAGS) -o $@ $^
+	cp bristol-vox.lv2/manifest.win.ttl bristol-vox.lv2/manifest.ttl
+
+clean:
+	rm -rf $(BUILD) bristol-vox.lv2/bristol-vox.dll bristol-vox.lv2/bristol-vox bristol-vox.lv2/manifest.ttl $(TEST_BIN)
+
+install: $(PLUGIN)
+	mkdir -p "$(INSTALL_DIR)/bristol-vox.lv2"
+	cp bristol-vox.lv2/bristol-vox.dll "$(INSTALL_DIR)/bristol-vox.lv2/"
+	cp bristol-vox.lv2/manifest.win.ttl "$(INSTALL_DIR)/bristol-vox.lv2/manifest.ttl"
+	rm -f "$(INSTALL_DIR)/bristol-vox.lv2/plugin.ttl" "$(INSTALL_DIR)/bristol-vox.lv2/bristol-vox.ttl"

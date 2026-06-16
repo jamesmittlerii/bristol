@@ -1,0 +1,82 @@
+# --- Autotools / libtool ---------------------------------------------------
+autom4te.cache/
+/config.cache
+/config.log
+/config.status
+/config.h
+/stamp-h1
+/libtool
+.deps/
+*.lai
+*.lo
+*.la
+
+# ./configure writes Makefiles; keep Makefile.in / Makefile.am / LV2 Makefiles
+**/Makefile
+!**/Makefile.in
+!**/Makefile.am
+!lv2/bristol-vox/Makefile
+!lv2/bristol-vox/Makefile.win
+
+# --- C / C++ build artifacts -----------------------------------------------
+*.o
+*.obj
+*.a
+*.lib
+*.so
+*.so.*
+*.dylib
+*.dll
+*.exe
+*.pdb
+*.ilk
+*.exp
+*.gcno
+*.gcda
+*.prof
+*.su
+*.d
+
+# --- LV2 plugin (bristol-vox) ----------------------------------------------
+lv2/bristol-vox/build/
+lv2/bristol-vox/bristol-vox.lv2/bristol-vox
+lv2/bristol-vox/bristol-vox.lv2/bristol-vox.dll
+# Generated at build time from manifest.linux.ttl or manifest.win.ttl
+lv2/bristol-vox/bristol-vox.lv2/manifest.ttl
+
+# --- Archives / packages ---------------------------------------------------
+*.tar
+*.tar.*
+*.tgz
+*.zip
+*.7z
+*.deb
+*.rpm
+
+# --- Editors / IDEs --------------------------------------------------------
+.vscode/
+!.vscode/extensions.json
+!.vscode/settings.json.example
+.idea/
+*.swp
+*.swo
+*~
+\#*\#
+.\#*
+*.code-workspace
+
+# --- OS junk ---------------------------------------------------------------
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# --- Local / secrets (never commit) ----------------------------------------
+.env
+.env.*
+*.pem
+*.key

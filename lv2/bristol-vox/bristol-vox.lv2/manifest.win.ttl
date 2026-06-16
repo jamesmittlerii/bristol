@@ -1,0 +1,102 @@
+@prefix lv2: <http://lv2plug.in/ns/lv2core#> .
+@prefix atom: <http://lv2plug.in/ns/ext/atom#> .
+@prefix midi: <http://lv2plug.in/ns/ext/midi#> .
+@prefix doap: <http://usefulinc.com/ns/doap#> .
+@prefix mod: <http://moddevices.com/ns/mod#> .
+
+<http://bristol.sourceforge.net/lv2/vox>
+	a lv2:Plugin ,
+		lv2:Instrument ;
+	doap:name "Bristol Vox" ;
+	doap:license <http://www.gnu.org/licenses/gpl-3.0.txt> ;
+	lv2:project <http://bristol.sourceforge.net> ;
+	lv2:binary <bristol-vox.dll> ;
+	lv2:optionalFeature lv2:hardRTCapable ;
+	lv2:optionalFeature <http://lv2plug.in/ns/ext/buf-size#boundedBlockLength> ;
+	mod:brand "Bristol" ;
+	mod:label "Vox" ;
+	mod:category mod:category_Keys ;
+	lv2:port [
+		a lv2:AudioPort , lv2:OutputPort ;
+		lv2:index 0 ;
+		lv2:symbol "audio_l" ;
+		lv2:name "Audio Out Left"
+	] , [
+		a lv2:AudioPort , lv2:OutputPort ;
+		lv2:index 1 ;
+		lv2:symbol "audio_r" ;
+		lv2:name "Audio Out Right"
+	] , [
+		a lv2:InputPort , atom:AtomPort ;
+		lv2:index 2 ;
+		lv2:symbol "midi_in" ;
+		lv2:name "MIDI In" ;
+		lv2:designation lv2:control ;
+		atom:bufferType atom:Sequence ;
+		atom:supports midi:MidiEvent
+	] , [
+		a lv2:InputPort , lv2:ControlPort ;
+		lv2:index 3 ;
+		lv2:symbol "gain" ;
+		lv2:name "Gain" ;
+		lv2:default 0.7 ;
+		lv2:minimum 0.0 ;
+		lv2:maximum 1.0
+	] , [
+		a lv2:InputPort , lv2:ControlPort ;
+		lv2:index 4 ;
+		lv2:symbol "drawbar_16" ;
+		lv2:name "16 ft" ;
+		lv2:default 1.0 ;
+		lv2:minimum 0.0 ;
+		lv2:maximum 1.0
+	] , [
+		a lv2:InputPort , lv2:ControlPort ;
+		lv2:index 5 ;
+		lv2:symbol "drawbar_8" ;
+		lv2:name "8 ft" ;
+		lv2:default 1.0 ;
+		lv2:minimum 0.0 ;
+		lv2:maximum 1.0
+	] , [
+		a lv2:InputPort , lv2:ControlPort ;
+		lv2:index 6 ;
+		lv2:symbol "drawbar_4" ;
+		lv2:name "4 ft" ;
+		lv2:default 0.5 ;
+		lv2:minimum 0.0 ;
+		lv2:maximum 1.0
+	] , [
+		a lv2:InputPort , lv2:ControlPort ;
+		lv2:index 7 ;
+		lv2:symbol "drawbar_iv" ;
+		lv2:name "IV Mix" ;
+		lv2:default 0.0 ;
+		lv2:minimum 0.0 ;
+		lv2:maximum 1.0
+	] , [
+		a lv2:InputPort , lv2:ControlPort ;
+		lv2:index 8 ;
+		lv2:symbol "drawbar_flute" ;
+		lv2:name "Flute Mix" ;
+		lv2:default 1.0 ;
+		lv2:minimum 0.0 ;
+		lv2:maximum 1.0
+	] , [
+		a lv2:InputPort , lv2:ControlPort ;
+		lv2:index 9 ;
+		lv2:symbol "drawbar_reed" ;
+		lv2:name "Reed Mix" ;
+		lv2:default 0.0 ;
+		lv2:minimum 0.0 ;
+		lv2:maximum 1.0
+	] , [
+		a lv2:InputPort , lv2:ControlPort ;
+		lv2:index 10 ;
+		lv2:symbol "vibrato" ;
+		lv2:name "Vibrato" ;
+		lv2:default 0.0 ;
+		lv2:minimum 0.0 ;
+		lv2:maximum 1.0 ;
+		lv2:portProperty lv2:toggled
+	] .
