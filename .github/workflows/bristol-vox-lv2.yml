@@ -54,12 +54,15 @@ jobs:
         run: |
           set -eux
           RELEASE_DIR=dist/bristol-vox-lv2-linux-arm64
+          STAGE_DIR=dist/stage/bristol-vox.lv2
           ZIP_NAME=bristol-vox-lv2-linux-arm64.zip
           rm -rf dist
-          mkdir -p "$RELEASE_DIR"
-          (cd lv2/bristol-vox && zip -r "$GITHUB_WORKSPACE/$RELEASE_DIR/$ZIP_NAME" bristol-vox.lv2/)
+          mkdir -p "$RELEASE_DIR" "$STAGE_DIR"
+          cp lv2/bristol-vox/bristol-vox.lv2/bristol-vox.so "$STAGE_DIR/"
+          cp lv2/bristol-vox/bristol-vox.lv2/manifest.ttl "$STAGE_DIR/"
+          (cd dist/stage && zip -r "$GITHUB_WORKSPACE/$RELEASE_DIR/$ZIP_NAME" bristol-vox.lv2/)
           (cd "$RELEASE_DIR" && sha256sum "$ZIP_NAME" > sha256sums.txt)
-          unzip -l "$RELEASE_DIR/$ZIP_NAME"
+          zip -sf "$RELEASE_DIR/$ZIP_NAME"
 
       - name: Upload release
         uses: actions/upload-artifact@v4
