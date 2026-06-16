@@ -88,7 +88,7 @@ $(PLUGIN): $(OBJ)
 	cp bristol-vox.lv2/manifest.win.ttl bristol-vox.lv2/manifest.ttl
 
 clean:
-	rm -rf $(BUILD) bristol-vox.lv2/bristol-vox.dll bristol-vox.lv2/bristol-vox bristol-vox.lv2/manifest.ttl $(TEST_BIN)
+	rm -rf $(BUILD) bristol-vox.lv2/bristol-vox.dll bristol-vox.lv2/bristol-vox.so bristol-vox.lv2/bristol-vox bristol-vox.lv2/manifest.ttl $(TEST_BIN)
 
 install: $(PLUGIN)
 	mkdir -p "$(INSTALL_DIR)/bristol-vox.lv2"

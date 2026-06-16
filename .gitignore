@@ -39,6 +39,7 @@ autom4te.cache/
 
 # --- LV2 plugin (bristol-vox) ----------------------------------------------
 lv2/bristol-vox/build/
+lv2/bristol-vox/bristol-vox.lv2/bristol-vox.so
 lv2/bristol-vox/bristol-vox.lv2/bristol-vox
 lv2/bristol-vox/bristol-vox.lv2/bristol-vox.dll
 # Generated at build time from manifest.linux.ttl or manifest.win.ttl

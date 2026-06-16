@@ -34,24 +34,36 @@ jobs:
         run: |
           apt-get update
           apt-get install -y --no-install-recommends \
-            build-essential pkg-config lv2-dev file
+            build-essential pkg-config lv2-dev file zip
 
       - name: Build
         run: make clean && make
 
       - name: Verify bundle
         run: |
-          file bristol-vox.lv2/bristol-vox | grep -F 'ARM aarch64'
-          grep -F 'lv2:binary <bristol-vox>' bristol-vox.lv2/manifest.ttl
+          file bristol-vox.lv2/bristol-vox.so | grep -F 'ARM aarch64'
+          grep -F 'lv2:binary <bristol-vox.so>' bristol-vox.lv2/manifest.ttl
+          test -d bristol-vox.lv2
+          ls -la bristol-vox.lv2/
 
       - name: Test
         run: make test
 
-      - name: Upload LV2 bundle
+      - name: Package release artifact
+        working-directory: ${{ github.workspace }}
+        run: |
+          set -eux
+          RELEASE_DIR=dist/bristol-vox-lv2-linux-arm64
+          ZIP_NAME=bristol-vox-lv2-linux-arm64.zip
+          rm -rf dist
+          mkdir -p "$RELEASE_DIR"
+          (cd lv2/bristol-vox && zip -r "$GITHUB_WORKSPACE/$RELEASE_DIR/$ZIP_NAME" bristol-vox.lv2/)
+          (cd "$RELEASE_DIR" && sha256sum "$ZIP_NAME" > sha256sums.txt)
+          unzip -l "$RELEASE_DIR/$ZIP_NAME"
+
+      - name: Upload release
         uses: actions/upload-artifact@v4
         with:
           name: bristol-vox-lv2-linux-arm64
-          path: |
-            lv2/bristol-vox/bristol-vox.lv2/bristol-vox
-            lv2/bristol-vox/bristol-vox.lv2/manifest.ttl
+          path: dist/bristol-vox-lv2-linux-arm64/
           if-no-files-found: error

@@ -10,7 +10,7 @@
 	doap:name "Bristol Vox" ;
 	doap:license <http://www.gnu.org/licenses/gpl-3.0.txt> ;
 	lv2:project <http://bristol.sourceforge.net> ;
-	lv2:binary <bristol-vox> ;
+	lv2:binary <bristol-vox.so> ;
 	lv2:optionalFeature lv2:hardRTCapable ;
 	lv2:optionalFeature <http://lv2plug.in/ns/ext/buf-size#boundedBlockLength> ;
 	mod:brand "Bristol" ;

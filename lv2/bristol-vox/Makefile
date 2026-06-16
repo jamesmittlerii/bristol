@@ -38,7 +38,7 @@ ifndef CROSS
   endif
 endif
 
-PLUGIN := bristol-vox.lv2/bristol-vox
+PLUGIN := bristol-vox.lv2/bristol-vox.so
 INSTALL_DIR ?= $(HOME)/.lv2
 
 .PHONY: all clean install test
@@ -80,10 +80,10 @@ $(PLUGIN): $(OBJ)
 	cp bristol-vox.lv2/manifest.linux.ttl bristol-vox.lv2/manifest.ttl
 
 clean:
-	rm -rf $(BUILD) bristol-vox.lv2/bristol-vox $(TEST_BIN)
+	rm -rf $(BUILD) bristol-vox.lv2/bristol-vox.so bristol-vox.lv2/bristol-vox $(TEST_BIN)
 
 install: $(PLUGIN)
 	mkdir -p $(INSTALL_DIR)/bristol-vox.lv2
-	cp bristol-vox.lv2/bristol-vox $(INSTALL_DIR)/bristol-vox.lv2/
+	cp bristol-vox.lv2/bristol-vox.so $(INSTALL_DIR)/bristol-vox.lv2/
 	cp bristol-vox.lv2/manifest.linux.ttl $(INSTALL_DIR)/bristol-vox.lv2/manifest.ttl
 	rm -f $(INSTALL_DIR)/bristol-vox.lv2/plugin.ttl $(INSTALL_DIR)/bristol-vox.lv2/bristol-vox.ttl

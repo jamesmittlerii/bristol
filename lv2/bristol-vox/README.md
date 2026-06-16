@@ -50,8 +50,7 @@ Output bundle:
 ```
 bristol-vox.lv2/
   manifest.ttl      (all plugin metadata + ports)
-  bristol-vox.dll   (Windows) / bristol-vox (Linux)
-  bristol-vox.dll
+  bristol-vox.dll   (Windows) / bristol-vox.so (Linux)
 ```
 
 ### 3. Automated tests
@@ -188,13 +187,36 @@ For MOD devices, cross-compile with [mod-plugin-builder](https://github.com/modd
 
 On push/PR, [`.github/workflows/bristol-vox-lv2.yml`](../../.github/workflows/bristol-vox-lv2.yml) builds on **native ARM64** inside a **Debian Bookworm** container (glibc 2.36, matching Raspberry Pi OS) and uploads the LV2 bundle.
 
-Download the **bristol-vox-lv2-linux-arm64** artifact from a green workflow run, then on the Pi:
+Download the **bristol-vox-lv2-linux-arm64** artifact from a green workflow run. It contains:
+
+```
+bristol-vox-lv2-linux-arm64.zip
+sha256sums.txt
+```
+
+The zip unpacks to a standard LV2 bundle:
+
+```
+bristol-vox.lv2/
+  bristol-vox.so
+  manifest.ttl
+```
+
+Install on the Pi (same layout as other plugins under `/usr/local/lib/lv2`):
 
 ```bash
-mkdir -p ~/.lv2/bristol-vox.lv2
-cp bristol-vox manifest.ttl ~/.lv2/bristol-vox.lv2/
-export LV2_PATH=$HOME/.lv2
+cd ~/bristol-vox-lv2-linux-arm64
+sha256sum -c sha256sums.txt
+sudo unzip -o bristol-vox-lv2-linux-arm64.zip -d /usr/local/lib/lv2
+export LV2_PATH=/usr/local/lib/lv2
 mod-host   # or Carla / jalv
+```
+
+Or per-user install:
+
+```bash
+unzip -o bristol-vox-lv2-linux-arm64.zip -d ~/.lv2
+export LV2_PATH=$HOME/.lv2
 ```
 
 Requires **Raspberry Pi OS 64-bit** (Pi 4/5).
