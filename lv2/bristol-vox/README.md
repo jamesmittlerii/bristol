@@ -186,13 +186,7 @@ For MOD devices, cross-compile with [mod-plugin-builder](https://github.com/modd
 
 ### CI (GitHub Actions)
 
-On push/PR, [`.github/workflows/bristol-vox-lv2.yml`](../../.github/workflows/bristol-vox-lv2.yml) builds and tests:
-
-| Job | Target |
-|-----|--------|
-| **Linux x64** | Native desktop sanity check |
-| **Raspberry Pi (aarch64 cross)** | Cross-compile from Ubuntu + run tests under `qemu-aarch64-static`; uploads the LV2 bundle artifact |
-| **Raspberry Pi (native arm64)** | Native build on `ubuntu-24.04-arm` when available |
+On push/PR, [`.github/workflows/bristol-vox-lv2.yml`](../../.github/workflows/bristol-vox-lv2.yml) builds on **native ARM64** inside a **Debian Bookworm** container (glibc 2.36, matching Raspberry Pi OS) and uploads the LV2 bundle.
 
 Download the **bristol-vox-lv2-linux-arm64** artifact from a green workflow run, then on the Pi:
 
@@ -203,16 +197,7 @@ export LV2_PATH=$HOME/.lv2
 mod-host   # or Carla / jalv
 ```
 
-Cross-compile locally (same as CI):
-
-```bash
-sudo dpkg --add-architecture arm64
-sudo apt install gcc-aarch64-linux-gnu liblv2-dev:arm64 qemu-user-static
-make CROSS=aarch64-linux-gnu
-make test CROSS=aarch64-linux-gnu
-```
-
-Requires **Raspberry Pi OS 64-bit** (Pi 4/5). 32-bit armhf is not built in CI yet.
+Requires **Raspberry Pi OS 64-bit** (Pi 4/5).
 
 ---
 

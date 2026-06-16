@@ -22,90 +22,34 @@ defaults:
     working-directory: lv2/bristol-vox
 
 jobs:
-  linux-x64:
-    name: Linux x64
-    runs-on: ubuntu-latest
+  build-linux-arm64:
+    name: Linux ARM64 (Raspberry Pi target)
+    runs-on: ubuntu-24.04-arm
+    # Match Raspberry Pi OS / Debian Bookworm glibc (2.36). Ubuntu 24.04 needs GLIBC_2.38+.
+    container: debian:bookworm
     steps:
       - uses: actions/checkout@v4
 
       - name: Install build dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential pkg-config liblv2-dev
+          apt-get update
+          apt-get install -y build-essential pkg-config liblv2-dev file
 
       - name: Build
         run: make clean && make
 
       - name: Verify bundle
         run: |
-          file bristol-vox.lv2/bristol-vox | grep -F 'ELF 64-bit'
+          file bristol-vox.lv2/bristol-vox | grep -F 'ARM aarch64'
           grep -F 'lv2:binary <bristol-vox>' bristol-vox.lv2/manifest.ttl
 
       - name: Test
         run: make test
-
-  linux-arm64-cross:
-    name: Raspberry Pi (aarch64 cross)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install cross toolchain and LV2 (arm64)
-        run: |
-          sudo dpkg --add-architecture arm64
-          sudo apt-get update
-          sudo apt-get install -y \
-            build-essential pkg-config \
-            gcc-aarch64-linux-gnu \
-            liblv2-dev:arm64 \
-            qemu-user-static
-
-      - name: Build for aarch64
-        run: make clean && make CROSS=aarch64-linux-gnu
-
-      - name: Verify ARM64 binary
-        run: |
-          file bristol-vox.lv2/bristol-vox | grep -F 'ARM aarch64'
-          grep -F 'lv2:binary <bristol-vox>' bristol-vox.lv2/manifest.ttl
-
-      - name: Test (qemu-aarch64)
-        run: make test CROSS=aarch64-linux-gnu
 
       - name: Upload LV2 bundle
         uses: actions/upload-artifact@v4
         with:
           name: bristol-vox-lv2-linux-arm64
-          path: |
-            lv2/bristol-vox/bristol-vox.lv2/bristol-vox
-            lv2/bristol-vox/bristol-vox.lv2/manifest.ttl
-          if-no-files-found: error
-
-  linux-arm64-native:
-    name: Raspberry Pi (native arm64)
-    runs-on: ubuntu-24.04-arm
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install build dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential pkg-config liblv2-dev
-
-      - name: Build
-        run: make clean && make
-
-      - name: Verify bundle
-        run: |
-          file bristol-vox.lv2/bristol-vox | grep -F 'ARM aarch64'
-          grep -F 'lv2:binary <bristol-vox>' bristol-vox.lv2/manifest.ttl
-
-      - name: Test
-        run: make test
-
-      - name: Upload LV2 bundle
-        uses: actions/upload-artifact@v4
-        with:
-          name: bristol-vox-lv2-linux-arm64-native
           path: |
             lv2/bristol-vox/bristol-vox.lv2/bristol-vox
             lv2/bristol-vox/bristol-vox.lv2/manifest.ttl
