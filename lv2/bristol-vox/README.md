@@ -167,7 +167,7 @@ Copy the entire `bristol-vox.lv2` folder to Windows and load in Carla.
 ## Linux / Raspberry Pi (mod-host)
 
 ```bash
-sudo apt install build-essential pkg-config liblv2-dev
+sudo apt install build-essential pkg-config lv2-dev
 cd lv2/bristol-vox
 make
 sudo make install

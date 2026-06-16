@@ -1,11 +1,12 @@
 # Bristol Vox Continental LV2 — Linux / Raspberry Pi
 #
-#   sudo apt install build-essential pkg-config liblv2-dev
+#   sudo apt install build-essential pkg-config lv2-dev   # Debian / Raspberry Pi OS
+#   sudo apt install build-essential pkg-config liblv2-dev  # Ubuntu
 #   make && sudo make install
 #
 # Cross-compile for Raspberry Pi OS 64-bit (aarch64) from x86_64 Ubuntu/Debian:
 #   sudo dpkg --add-architecture arm64
-#   sudo apt install gcc-aarch64-linux-gnu liblv2-dev:arm64 qemu-user-static
+#   sudo apt install gcc-aarch64-linux-gnu lv2-dev:arm64 qemu-user-static
 #   make CROSS=aarch64-linux-gnu
 #   make test CROSS=aarch64-linux-gnu   # runs via qemu-aarch64-static
 #
