@@ -221,6 +221,11 @@ export LV2_PATH=$HOME/.lv2
 
 Requires **Raspberry Pi OS 64-bit** (Pi 4/5).
 
+| Problem | Fix |
+|---------|-----|
+| Loud / distorted / “hot” vs other plugins | Older builds stacked ~4× internal EQ plus aggressive master gain. Reinstall latest CI build; default gain is now **0.5**. Try **0.3–0.5** before raising drawbars. |
+| High CPU vs lightweight LV2 synths | Bristol runs full tonewheel synthesis (6 voices on Pi builds). Use larger JACK/mod-host buffer (256–512), avoid holding many notes at once. |
+
 ---
 
 ## Controls
@@ -232,7 +237,7 @@ Requires **Raspberry Pi OS 64-bit** (Pi 4/5).
 | `drawbar_iv` | IV footage |
 | `drawbar_flute` | **Flute mix bus** — must be up for tonewheel footages to sound (default 1.0) |
 | `drawbar_reed` | **Reed mix bus** — optional rasp layer (default 0) |
-| `gain` | Master level |
+| `gain` | Master level (default 0.5; Bristol stacks internal gain — raise slowly) |
 | `vibrato` | Toggle |
 | `audio_l` / `audio_r` | Stereo output |
 

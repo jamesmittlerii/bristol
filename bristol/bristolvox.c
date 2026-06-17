@@ -400,7 +400,11 @@ bristolVoice *voice, register float *startbuf)
 		return(0);
 
 	/* Volume level EQ */
+#ifdef BRISTOL_LV2
+	bufmerge(outbuf, 0.0, outbuf, 1.25, audiomain->samplecount);
+#else
 	bufmerge(outbuf, 0.0, outbuf, 4.0, audiomain->samplecount);
+#endif
 
 	if (baudio->mixflags & VOX_VIBRA)
 	{
@@ -439,7 +443,11 @@ bristolVoice *voice, register float *startbuf)
 		return(0);
 
 	/* Volume level EQ */
+#ifdef BRISTOL_LV2
+	bufmerge(outbuf, 0.0, outbuf, 1.25, audiomain->samplecount);
+#else
 	bufmerge(outbuf, 0.0, outbuf, 4.0, audiomain->samplecount);
+#endif
 
 	if (baudio->mixflags & VOX_VIBRA)
 	{

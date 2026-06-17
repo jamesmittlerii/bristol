@@ -19,6 +19,38 @@ extern int doAudioOps(audioMain *, float *, float *);
 extern void freeBristolAudio(audioMain *, Baudio *);
 extern void freeAudioMain(audioMain *);
 
+static float *lv2_run_outbuf;
+static float *lv2_run_startbuf;
+static size_t lv2_run_buffloats;
+
+static void
+lv2_run_buffers_free(void)
+{
+	bristolfree(lv2_run_outbuf);
+	bristolfree(lv2_run_startbuf);
+	lv2_run_outbuf = NULL;
+	lv2_run_startbuf = NULL;
+	lv2_run_buffloats = 0;
+}
+
+static int
+lv2_run_buffers_alloc(size_t nfloats)
+{
+	if (lv2_run_buffloats == nfloats && lv2_run_outbuf != NULL
+			&& lv2_run_startbuf != NULL)
+		return(0);
+
+	lv2_run_buffers_free();
+	lv2_run_outbuf = (float *) bristolmalloc(nfloats * sizeof(float));
+	lv2_run_startbuf = (float *) bristolmalloc(nfloats * sizeof(float));
+	if (lv2_run_outbuf == NULL || lv2_run_startbuf == NULL) {
+		lv2_run_buffers_free();
+		return(-1);
+	}
+	lv2_run_buffloats = nfloats;
+	return(0);
+}
+
 static void
 vox_set_drawbar_raw(audioMain *audiomain, int bar, int level)
 {
@@ -63,7 +95,7 @@ bristol_vox_engine_init(audioMain *audiomain, uint32_t sample_rate,
 	baudio->samplerate = (int) sample_rate;
 	baudio->samplecount = (int) block_size;
 	baudio->voicecount = BRISTOL_VOICECOUNT;
-	baudio->gain = 2.0f;
+	baudio->gain = 1.0f;
 	audiomain->audiolist = baudio;
 
 	audiomain->midiflags = BRISTOL_VOX;
@@ -77,7 +109,10 @@ bristol_vox_engine_init(audioMain *audiomain, uint32_t sample_rate,
 	vox_set_drawbar_raw(audiomain, 3, 0);
 	vox_set_drawbar_raw(audiomain, 4, 8);
 	vox_set_drawbar_raw(audiomain, 5, 0);
-	bristolLv2SysexParam(audiomain, 0, 0, 1, 120);
+	bristolLv2SysexParam(audiomain, 0, 0, 1, 64);
+
+	if (lv2_run_buffers_alloc((size_t) audiomain->segmentsize * 2) != 0)
+		return(-1);
 
 	return(0);
 }
@@ -97,6 +132,7 @@ bristol_vox_engine_fini(audioMain *audiomain)
 		audiomain->rb = NULL;
 	}
 	freeAudioMain(audiomain);
+	lv2_run_buffers_free();
 }
 
 void
@@ -106,29 +142,37 @@ bristol_vox_engine_run(audioMain *audiomain, float *out_l, float *out_r,
 	float *outbuf;
 	float *startbuf;
 	uint32_t i;
+	size_t nfloats;
 
 	if ((int) nframes != audiomain->samplecount)
 		return;
 
-	outbuf = (float *) bristolmalloc(audiomain->segmentsize * 2);
-	startbuf = (float *) bristolmalloc(audiomain->segmentsize * 2);
-	if (outbuf == NULL || startbuf == NULL) {
-		bristolfree(outbuf);
-		bristolfree(startbuf);
+	nfloats = (size_t) audiomain->segmentsize * 2;
+	if (lv2_run_buffers_alloc(nfloats) != 0)
 		return;
-	}
 
-	bristolbzero(outbuf, audiomain->segmentsize * 2);
-	bristolbzero(startbuf, audiomain->segmentsize * 2);
+	outbuf = lv2_run_outbuf;
+	startbuf = lv2_run_startbuf;
+
+	bristolbzero(outbuf, nfloats * sizeof(float));
+	bristolbzero(startbuf, nfloats * sizeof(float));
 	doAudioOps(audiomain, outbuf, startbuf);
 
 	for (i = 0; i < nframes; i++) {
-		out_l[i] = outbuf[i * 2];
-		out_r[i] = outbuf[i * 2 + 1];
-	}
+		float l = outbuf[i * 2];
+		float r = outbuf[i * 2 + 1];
 
-	bristolfree(outbuf);
-	bristolfree(startbuf);
+		if (l > 1.0f)
+			l = 1.0f;
+		else if (l < -1.0f)
+			l = -1.0f;
+		if (r > 1.0f)
+			r = 1.0f;
+		else if (r < -1.0f)
+			r = -1.0f;
+		out_l[i] = l;
+		out_r[i] = r;
+	}
 }
 
 void
