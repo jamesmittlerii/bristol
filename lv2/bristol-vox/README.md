@@ -73,7 +73,7 @@ On Linux / Pi:
 make test
 ```
 
-Tests cover engine init/fini, MIDI, drawbars, ring-buffer regression, block-size changes, and full `instantiate` → `run` → `cleanup` via `lv2_descriptor()`.
+Tests cover engine init/fini, MIDI, drawbars, ring-buffer regression, block-size changes, full `instantiate` → `run` → `cleanup`, and **output level checks** (default drawbars + MIDI note at gain 0.4 / 0.5 must peak well below digital full scale).
 
 ### 4. Test in Carla (Windows)
 
@@ -223,7 +223,7 @@ Requires **Raspberry Pi OS 64-bit** (Pi 4/5).
 
 | Problem | Fix |
 |---------|-----|
-| Loud / distorted / “hot” vs other plugins | Older builds stacked ~4× internal EQ plus aggressive master gain. Reinstall latest CI build; default gain is now **0.5**. Try **0.3–0.5** before raising drawbars. |
+| Loud / distorted at gain 0.4 | Reinstall latest build — CI runs `test_audio_level_gain_040_sensible` (peak must stay below ~0.6, not hit 1.0). Older builds pegged the limiter constantly. |
 | High CPU vs lightweight LV2 synths | Bristol runs full tonewheel synthesis (6 voices on Pi builds). Use larger JACK/mod-host buffer (256–512), avoid holding many notes at once. |
 
 ---

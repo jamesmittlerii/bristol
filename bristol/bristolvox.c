@@ -401,7 +401,7 @@ bristolVoice *voice, register float *startbuf)
 
 	/* Volume level EQ */
 #ifdef BRISTOL_LV2
-	bufmerge(outbuf, 0.0, outbuf, 1.25, audiomain->samplecount);
+	bufmerge(outbuf, 0.0, outbuf, 0.85, audiomain->samplecount);
 #else
 	bufmerge(outbuf, 0.0, outbuf, 4.0, audiomain->samplecount);
 #endif
@@ -444,7 +444,7 @@ bristolVoice *voice, register float *startbuf)
 
 	/* Volume level EQ */
 #ifdef BRISTOL_LV2
-	bufmerge(outbuf, 0.0, outbuf, 1.25, audiomain->samplecount);
+	bufmerge(outbuf, 0.0, outbuf, 0.85, audiomain->samplecount);
 #else
 	bufmerge(outbuf, 0.0, outbuf, 4.0, audiomain->samplecount);
 #endif

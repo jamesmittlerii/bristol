@@ -244,6 +244,90 @@ TEST(test_run_midi_carla_flute_zero_defaults)
 	desc->cleanup(handle);
 }
 
+/*
+ * Run the full LV2 path with default Continental drawbars and report levels.
+ * Targets: audible but well below digital full scale at the given gain.
+ */
+static void
+run_vox_level_check(float gain, const float drawbars[6], uint8_t note,
+	uint8_t vel, float *peak_out, float *rms_out)
+{
+	const LV2_Descriptor *desc = get_descriptor();
+	LV2_Handle handle;
+	float out_l[128];
+	float out_r[128];
+	uint8_t midi_buf[256];
+	LV2_Atom_Sequence *midi_seq;
+	uint32_t block = 128;
+	unsigned i;
+	float peak = 0.0f;
+	double rms_sum = 0.0;
+	unsigned rms_count = 0;
+
+	build_note_on_sequence(midi_buf, sizeof(midi_buf), note, vel, &midi_seq);
+	handle = desc->instantiate(desc, PLUGIN_SR, NULL, NULL);
+	ASSERT(handle != NULL);
+	desc->connect_port(handle, PORT_AUDIO_L, out_l);
+	desc->connect_port(handle, PORT_AUDIO_R, out_r);
+	desc->connect_port(handle, PORT_MIDI_IN, midi_seq);
+	desc->connect_port(handle, PORT_GAIN, &gain);
+	desc->connect_port(handle, PORT_DRAWBAR_16, &drawbars[0]);
+	desc->connect_port(handle, PORT_DRAWBAR_8, &drawbars[1]);
+	desc->connect_port(handle, PORT_DRAWBAR_4, &drawbars[2]);
+	desc->connect_port(handle, PORT_DRAWBAR_IV, &drawbars[3]);
+	desc->connect_port(handle, PORT_DRAWBAR_FLUTE, &drawbars[4]);
+	desc->connect_port(handle, PORT_DRAWBAR_REED, &drawbars[5]);
+	for (i = 0; i < 128; i++) {
+		float block_peak, block_rms;
+
+		desc->run(handle, block);
+		block_peak = test_buffer_peak(out_l, block);
+		block_rms = test_buffer_rms(out_l, block);
+		if (block_peak > peak)
+			peak = block_peak;
+		if (block_rms > 1e-6f) {
+			rms_sum += (double) block_rms * (double) block_rms;
+			rms_count++;
+		}
+	}
+	desc->cleanup(handle);
+	*peak_out = peak;
+	*rms_out = (rms_count > 0) ? (float) sqrt(rms_sum / rms_count) : 0.0f;
+}
+
+TEST(test_audio_level_gain_040_sensible)
+{
+	/* Match manifest defaults: 16'/8' up, 4' half, flute on. */
+	float drawbars[6] = { 1.0f, 1.0f, 0.5f, 0.0f, 1.0f, 0.0f };
+	float gain = 0.4f;
+	float peak, rms;
+
+	run_vox_level_check(gain, drawbars, 60, 100, &peak, &rms);
+	if (peak > 0.60f || peak < 0.04f)
+		fprintf(stderr,
+			"  level at gain=0.4: peak=%.4f rms=%.4f (want peak 0.04-0.60)\n",
+			peak, rms);
+	ASSERT(peak >= 0.04f);
+	ASSERT(peak <= 0.60f);
+	ASSERT(peak < 0.98f);
+}
+
+TEST(test_audio_level_default_gain_sensible)
+{
+	float drawbars[6] = { 1.0f, 1.0f, 0.5f, 0.0f, 1.0f, 0.0f };
+	float gain = 0.5f;
+	float peak, rms;
+
+	run_vox_level_check(gain, drawbars, 60, 100, &peak, &rms);
+	if (peak > 0.70f || peak < 0.04f)
+		fprintf(stderr,
+			"  level at gain=0.5: peak=%.4f rms=%.4f (want peak 0.04-0.70)\n",
+			peak, rms);
+	ASSERT(peak >= 0.04f);
+	ASSERT(peak <= 0.70f);
+	ASSERT(peak < 0.98f);
+}
+
 TEST(test_run_zero_frames)
 {
 	const LV2_Descriptor *desc = get_descriptor();
@@ -268,5 +352,7 @@ test_plugin_suite(void)
 	RUN_TEST(test_run_block_size_change);
 	RUN_TEST(test_run_control_ports);
 	RUN_TEST(test_run_midi_carla_flute_zero_defaults);
+	RUN_TEST(test_audio_level_gain_040_sensible);
+	RUN_TEST(test_audio_level_default_gain_sensible);
 	RUN_TEST(test_run_zero_frames);
 }

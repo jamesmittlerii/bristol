@@ -240,8 +240,8 @@ run(LV2_Handle instance, uint32_t nframes)
 			g = 0.0f;
 		if (g > 1.0f)
 			g = 1.0f;
-		/* Bristol postops still add headroom; keep master gain conservative. */
-		plugin->engine.audiolist->gain = 0.15f + g * 0.55f;
+		/* Scale so default drawbars at gain ~0.4 peak well below full scale. */
+		plugin->engine.audiolist->gain = 0.06f + g * 0.24f;
 	}
 
 	bristol_vox_engine_run(&plugin->engine, plugin->audio_l, plugin->audio_r,

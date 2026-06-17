@@ -48,6 +48,19 @@ test_buffer_peak(const float *buf, uint32_t n)
 	return peak;
 }
 
+static inline float
+test_buffer_rms(const float *buf, uint32_t n)
+{
+	float sum = 0.0f;
+	uint32_t i;
+
+	if (n == 0)
+		return 0.0f;
+	for (i = 0; i < n; i++)
+		sum += buf[i] * buf[i];
+	return sqrtf(sum / (float) n);
+}
+
 static inline void
 test_suite_begin(const char *name)
 {
