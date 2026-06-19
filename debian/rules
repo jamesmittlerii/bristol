@@ -1,0 +1,24 @@
+#!/usr/bin/make -f
+
+export DH_VERBOSE = 1
+export DEB_BUILD_MAINT_OPTIONS = hardening=+all
+
+LV2_DIR := lv2/bristol-vox
+BUNDLE_DIR := usr/lib/$(DEB_HOST_MULTIARCH)/lv2/bristol-vox.lv2
+
+%:
+	dh $@
+
+override_dh_auto_build:
+	$(MAKE) -C $(LV2_DIR) clean
+	$(MAKE) -C $(LV2_DIR)
+
+override_dh_auto_test:
+	$(MAKE) -C $(LV2_DIR) test
+
+override_dh_auto_install:
+	install -d $(CURDIR)/debian/lv2-bristol-vox/$(BUNDLE_DIR)
+	install -m 644 $(LV2_DIR)/bristol-vox.lv2/bristol-vox.so \
+		$(CURDIR)/debian/lv2-bristol-vox/$(BUNDLE_DIR)/
+	install -m 644 $(LV2_DIR)/bristol-vox.lv2/manifest.ttl \
+		$(CURDIR)/debian/lv2-bristol-vox/$(BUNDLE_DIR)/

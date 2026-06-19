@@ -1,0 +1,4 @@
+db/
+*.changes
+*.buildinfo
+*.dsc

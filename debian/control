@@ -1,0 +1,21 @@
+Source: bristol
+Section: sound
+Priority: optional
+Maintainer: James Mittler <jamesmittlerii@my.smccd.edu>
+Build-Depends: debhelper-compat (= 13),
+               build-essential,
+               pkg-config,
+               lv2-dev
+Standards-Version: 4.6.2
+Homepage: https://github.com/jamesmittlerii/bristol
+Rules-Requires-Root: no
+Vcs-Browser: https://github.com/jamesmittlerii/bristol
+Vcs-Git: https://github.com/jamesmittlerii/bristol.git
+
+Package: lv2-bristol-vox
+Architecture: any
+Provides: lv2-plugin
+Depends: ${misc:Depends}
+Description: Bristol Vox Continental LV2 instrument plugin
+ Headless Vox Continental emulator from the Bristol synthesizer,
+ packaged as an LV2 instrument for use in compatible hosts.

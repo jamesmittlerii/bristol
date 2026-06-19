@@ -1,0 +1,5 @@
+bristol (1.0.0) bookworm; urgency=medium
+
+  * LV2 bristol-vox plugin packaging for Debian.
+
+ -- James Mittler <jamesmittlerii@my.smccd.edu>  Thu, 19 Jun 2026 12:00:00 +0000

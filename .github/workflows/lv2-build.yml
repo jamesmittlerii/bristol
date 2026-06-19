@@ -1,0 +1,278 @@
+name: LV2 build and release
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, master]
+  pull_request:
+
+concurrency:
+  group: lv2-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+env:
+  APTREPO_SLUG: jamesmittlerii/aptrepo
+  APT_CODENAME: bookworm
+  LV2_PLUGIN_DIR: lv2/bristol-vox
+
+jobs:
+  test:
+    name: Test (${{ matrix.arch }})
+    runs-on: ${{ matrix.runs-on }}
+    container: debian:bookworm
+    defaults:
+      run:
+        working-directory: ${{ env.LV2_PLUGIN_DIR }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runs-on: ubuntu-24.04
+          - arch: arm64
+            runs-on: ubuntu-24.04-arm
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Install build tools
+        run: apt-get update && apt-get install -y build-essential pkg-config lv2-dev file binutils bash
+
+      - name: Build
+        run: make clean && make
+
+      - name: Verify Pi-compatible linkage
+        if: matrix.arch == 'arm64'
+        shell: bash
+        run: |
+          set -euo pipefail
+          so=bristol-vox.lv2/bristol-vox.so
+          file "$so" | grep -F 'ARM aarch64'
+          max_glibc=$(objdump -T "$so" | grep -oE 'GLIBC_[0-9.]+' | sed 's/GLIBC_//' | sort -t. -k1,1n -k2,2n -k3,3n | tail -1)
+          target_glibc="2.36"
+          if [ -n "$max_glibc" ] && [ "$(printf '%s\n' "$max_glibc" "$target_glibc" | sort -t. -k1,1n -k2,2n -k3,3n | head -1)" != "$max_glibc" ]; then
+            echo "ERROR: $so requires GLIBC > $target_glibc" >&2
+            exit 1
+          fi
+
+      - name: Run tests
+        run: make test
+
+      - name: Verify LV2 bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          bund=bristol-vox.lv2
+          test -f "$bund/manifest.ttl"
+          test -f "$bund/bristol-vox.so"
+          grep -F 'lv2:binary <bristol-vox.so>' "$bund/manifest.ttl"
+          nm -D "$bund/bristol-vox.so" | grep -q ' lv2_descriptor'
+
+  prepare-release:
+    name: Bump version
+    needs: test
+    if: >-
+      github.event_name == 'push'
+      && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+      && !contains(github.event.head_commit.message, '[skip ci]')
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.bump.outputs.version }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Bump semver
+        id: bump
+        run: |
+          chmod +x scripts/bump-version.sh scripts/update-debian-changelog.sh
+          new="$(./scripts/bump-version.sh patch)"
+          ./scripts/update-debian-changelog.sh "${new}"
+          echo "version=${new}" >> "${GITHUB_OUTPUT}"
+          echo "Bumped to ${new}"
+
+      - name: Upload release metadata
+        uses: actions/upload-artifact@v6
+        with:
+          name: release-metadata
+          path: |
+            VERSION
+            debian/changelog
+
+  build-deb:
+    name: Build .deb (${{ matrix.arch }})
+    needs: prepare-release
+    runs-on: ${{ matrix.runs-on }}
+    container: debian:bookworm
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runs-on: ubuntu-24.04
+          - arch: arm64
+            runs-on: ubuntu-24.04-arm
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Download release metadata
+        uses: actions/download-artifact@v7
+        with:
+          name: release-metadata
+
+      - name: Install packaging tools
+        run: |
+          apt-get update
+          apt-get install -y devscripts debhelper build-essential pkg-config lv2-dev
+
+      - name: Build Debian package
+        run: |
+          export DEB_BUILD_OPTIONS="nocheck noautodbgsym"
+          dpkg-buildpackage -us -uc -b -d
+          mkdir -p dist
+          mv ../lv2-bristol-vox_*.deb dist/
+          ls -la dist/
+
+      - name: Upload .deb
+        uses: actions/upload-artifact@v6
+        with:
+          name: deb-${{ matrix.arch }}
+          path: dist/*.deb
+
+  publish-apt:
+    name: Publish APT repo
+    needs:
+      - prepare-release
+      - build-deb
+    runs-on: ubuntu-24.04
+    container: debian:bookworm
+
+    steps:
+      - name: Install packaging tools
+        run: apt-get update && apt-get install -y --no-install-recommends git reprepro ca-certificates
+
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Download built packages
+        uses: actions/download-artifact@v7
+        with:
+          pattern: deb-*
+          path: debs
+          merge-multiple: true
+
+      - name: Publish to apt repository
+        shell: bash
+        env:
+          VERSION: ${{ needs.prepare-release.outputs.version }}
+          APTREPO_PUSH_TOKEN: ${{ secrets.APTREPO_PUSH_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "${APTREPO_PUSH_TOKEN:-}" ]; then
+            echo "ERROR: APTREPO_PUSH_TOKEN secret is not set on this repository." >&2
+            echo "Create a fine-grained PAT with contents write access to ${APTREPO_SLUG}." >&2
+            exit 1
+          fi
+
+          work="${GITHUB_WORKSPACE}"
+          rm -rf "${work}/aptrepo"
+          git clone "https://x-access-token:${APTREPO_PUSH_TOKEN}@github.com/${APTREPO_SLUG}.git" "${work}/aptrepo"
+          cd "${work}/aptrepo"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          if git ls-remote --heads origin gh-pages | grep -q gh-pages; then
+            git checkout gh-pages
+          else
+            git checkout --orphan gh-pages
+            git rm -rf . 2>/dev/null || true
+          fi
+
+          mkdir -p conf
+          cp "${work}/packaging/aptrepo-bootstrap/conf/distributions" conf/distributions
+          cp "${work}/packaging/aptrepo-bootstrap/.gitignore" .gitignore
+          cp "${work}/packaging/aptrepo-bootstrap/.nojekyll" .nojekyll
+          sed -i '/^\*\.deb$/d' .gitignore
+
+          shopt -s nullglob
+          debs=("${work}"/debs/lv2-bristol-vox_*.deb)
+          if [ ${#debs[@]} -eq 0 ]; then
+            echo "ERROR: no lv2-bristol-vox .deb files found in ${work}/debs" >&2
+            exit 1
+          fi
+          for deb in "${debs[@]}"; do
+            echo "Adding ${deb}"
+            reprepro -b . includedeb "${APT_CODENAME}" "${deb}"
+          done
+
+          rm -rf db
+          ls -laR pool/
+          git add -A
+          git add -f pool/
+          if ! git diff --staged --name-only | grep -qE '^pool/.*\.deb$'; then
+            echo "ERROR: no .deb files staged under pool/ (check .gitignore)" >&2
+            exit 1
+          fi
+          if git diff --staged --quiet; then
+            echo "No aptrepo changes to publish"
+          else
+            git commit -m "lv2-bristol-vox ${VERSION}"
+            git push origin gh-pages
+          fi
+
+  release-tag:
+    name: Tag and GitHub release
+    needs:
+      - prepare-release
+      - build-deb
+      - publish-apt
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Download release metadata
+        uses: actions/download-artifact@v7
+        with:
+          name: release-metadata
+
+      - name: Download built packages
+        uses: actions/download-artifact@v7
+        with:
+          pattern: deb-*
+          path: debs
+          merge-multiple: true
+
+      - name: Commit version bump and tag
+        shell: bash
+        env:
+          VERSION: ${{ needs.prepare-release.outputs.version }}
+        run: |
+          set -euo pipefail
+          cd "${GITHUB_WORKSPACE}"
+          unset GIT_DIR GIT_WORK_TREE
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add VERSION debian/changelog
+          git commit -m "chore(release): v${VERSION} [skip ci]"
+          git tag -a "v${VERSION}" -m "Release v${VERSION}"
+          git push origin HEAD
+          git push origin "v${VERSION}"
+
+      - name: Upload release assets
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: v${{ needs.prepare-release.outputs.version }}
+          name: v${{ needs.prepare-release.outputs.version }}
+          files: debs/lv2-bristol-vox_*.deb
+          generate_release_notes: true

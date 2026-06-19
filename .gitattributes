@@ -1,0 +1,3 @@
+debian/** text eol=lf
+VERSION text eol=lf
+scripts/*.sh text eol=lf
