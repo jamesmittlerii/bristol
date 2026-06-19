@@ -70,7 +70,10 @@ jobs:
           test -f "$bund/manifest.ttl"
           test -f "$bund/bristol-vox.so"
           grep -F 'lv2:binary <bristol-vox.so>' "$bund/manifest.ttl"
-          nm -D "$bund/bristol-vox.so" | grep -q ' lv2_descriptor'
+          if ! nm -D "$bund/bristol-vox.so" | grep ' lv2_descriptor' >/dev/null; then
+            echo "ERROR: lv2_descriptor not exported" >&2
+            exit 1
+          fi
 
   prepare-release:
     name: Bump version
