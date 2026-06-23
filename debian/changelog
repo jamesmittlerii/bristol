@@ -1,3 +1,9 @@
+bristol (1.0.5) bookworm; urgency=medium
+
+  * Automated LV2 release 1.0.5.
+
+ -- James Mittler <jamesmittlerii@my.smccd.edu>  Tue, 23 Jun 2026 17:45:43 +0000
+
 bristol (1.0.4) bookworm; urgency=medium
 
   * Automated LV2 release 1.0.4.
